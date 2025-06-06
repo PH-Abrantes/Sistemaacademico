@@ -1,66 +1,30 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-from estilo import aplicar_estilo, BRANCO, ROXO, ROXO_CLARO
-from banco import cursor, conn
-import estudante
-import professor
+import sqlite3
 
-# Função principal para abrir a janela de login
-def abrir_login():
-    login_window_main = tk.Tk()
-    login_window_main.title("Login")
-    login_window_main.geometry("400x300")
-    login_window_main.minsize(350, 300)
-    login_window_main.configure(bg=BRANCO)
+conn = sqlite3.connect('trabalhos_academicos.db')
 
-    aplicar_estilo(login_window_main)
+cursor = conn.cursor()
 
-    ttk.Label(login_window_main, text="* Professores: usuário admin, senha admin\n* Estudantes: usuário 01-05 e senha igual ao usuário", foreground=ROXO).pack(pady=5)
+def criar_tabelas():
+    # Criação da tabela de usuários
+    cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,   -- ID único e auto-incrementável
+        usuario TEXT NOT NULL UNIQUE,           -- Nome de usuário, único e obrigatório
+        senha TEXT NOT NULL,                    -- Senha do usuário, obrigatória
+        tipo TEXT NOT NULL                      -- Tipo de usuário (ex: 'aluno', 'professor'), obrigatório
+    )''')
 
-    tipo_var = tk.StringVar(value="Estudante")  
+    # Criação da tabela de trabalhos acadêmicos
+    cursor.execute('''CREATE TABLE IF NOT EXISTS trabalhos (
+        id_trabalho INTEGER PRIMARY KEY AUTOINCREMENT, -- ID único do trabalho
+        aluno_id TEXT NOT NULL,                        -- ID do aluno que enviou o trabalho
+        titulo TEXT NOT NULL,                          -- Título do trabalho
+        autor TEXT NOT NULL,                           -- Nome do autor
+        curso TEXT NOT NULL,                           -- Curso relacionado ao trabalho
+        data_entrega TEXT NOT NULL,                    -- Data de entrega do trabalho
+        orientador TEXT NOT NULL                       -- Nome do orientador do trabalho
+    )''')
 
-    frame = ttk.Frame(login_window_main)
-    frame.pack(pady=10)
+    conn.commit()
 
-    # Campo de usuário
-    ttk.Label(frame, text="Usuário:").grid(row=0, column=0, sticky='e', pady=5)
-    usuario_entry = ttk.Entry(frame)
-    usuario_entry.grid(row=0, column=1, pady=5)
-
-    # Campo de senha
-    ttk.Label(frame, text="Senha:").grid(row=1, column=0, sticky='e', pady=5)
-    senha_entry = ttk.Entry(frame, show="*")
-    senha_entry.grid(row=1, column=1, pady=5)
-
-    # Seleção do tipo de usuário
-    ttk.Label(frame, text="Tipo:").grid(row=2, column=0, sticky='e', pady=5)
-    tipo_frame = ttk.Frame(frame)
-    tipo_frame.grid(row=2, column=1, sticky='w', pady=5)
-    ttk.Radiobutton(tipo_frame, text="Estudante", variable=tipo_var, value="Estudante").pack(side='left')
-    ttk.Radiobutton(tipo_frame, text="Professor", variable=tipo_var, value="Professor").pack(side='left')
-
-    # Função executada ao clicar em "Entrar"
-    def login():
-        usuario = usuario_entry.get()
-        senha = senha_entry.get()
-        tipo = tipo_var.get()
-
-        if tipo == "Professor":
-            if usuario == "admin" and senha == "admin":
-                login_window_main.destroy()
-                professor.abrir_pagina_professor()
-            else:
-                messagebox.showerror("Erro", "Login de professor incorreto")
-        else:
-            if usuario in ["01", "02", "03", "04", "05"] and senha == usuario:
-                # Insere o estudante no banco se ainda não existir
-                cursor.execute("INSERT OR IGNORE INTO usuarios (usuario, senha, tipo) VALUES (?, ?, ?)", (usuario, senha, tipo))
-                conn.commit()
-                login_window_main.destroy()
-                estudante.abrir_pagina_estudante(usuario)
-            else:
-                messagebox.showerror("Erro", "Login ou senha de estudante incorretos")
-
-    ttk.Button(login_window_main, text="Entrar", command=login).pack(pady=20)
-
-    login_window_main.mainloop()
+def fechar_conexao():
+    conn.close()
